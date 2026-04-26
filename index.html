@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analyse — 50 av. Dr Paul Soufron, 19600 Larche</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-2: #273548;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-2: #818cf8;
+    --good: #22c55e;
+    --warn: #f59e0b;
+    --bad: #ef4444;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  header.hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    padding: 40px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    margin: 0 0 8px;
+  }
+  .hero .subtitle {
+    color: var(--muted);
+    font-size: 1.05rem;
+  }
+  .hero .price-line {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .price-tag {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .price-sub { color: var(--muted); font-size: 1.1rem; }
+  .verdict {
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: rgba(34, 197, 94, 0.12);
+    border-left: 4px solid var(--good);
+    border-radius: 6px;
+    font-size: 1.05rem;
+  }
+  .verdict strong { color: #4ade80; }
+
+  .key-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.05);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .stat .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat .value { font-size: 1.4rem; font-weight: 600; margin-top: 4px; }
+
+  section {
+    margin: 40px 0;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 28px;
+    border: 1px solid var(--border);
+  }
+  section h2 {
+    font-size: 1.5rem;
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  section h2::before {
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 24px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  section h3 { color: var(--accent-2); margin-top: 24px; }
+
+  /* Simulator */
+  .simulator {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 700px) { .simulator { grid-template-columns: 1fr; } }
+  .slider-group { margin-bottom: 18px; }
+  .slider-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+  .slider-group label .v { color: var(--accent); font-weight: 600; }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+  .results {
+    background: var(--card-2);
+    padding: 20px;
+    border-radius: 8px;
+  }
+  .results .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .results .row:last-child { border-bottom: none; }
+  .results .row.highlight { font-size: 1.2rem; font-weight: 700; padding-top: 12px; }
+  .results .row.highlight .v { color: var(--accent); }
+  .results .v { font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    margin-left: 8px;
+  }
+  .badge.good { background: rgba(34,197,94,0.2); color: #4ade80; }
+  .badge.warn { background: rgba(245,158,11,0.2); color: #fbbf24; }
+  .badge.bad { background: rgba(239,68,68,0.2); color: #f87171; }
+
+  /* Map */
+  #map { height: 480px; border-radius: 8px; }
+  .map-legend {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .map-legend .dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 0.93rem;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--card-2);
+    cursor: pointer;
+    user-select: none;
+    position: sticky; top: 0;
+  }
+  th:hover { color: var(--accent); }
+  tr.highlight-row { background: rgba(56,189,248,0.08); }
+  tr.target { background: rgba(34,197,94,0.15); font-weight: 600; }
+
+  /* Risks */
+  .risks { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .risk-card {
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid var(--muted);
+    background: var(--card-2);
+  }
+  .risk-card.good { border-left-color: var(--good); }
+  .risk-card.warn { border-left-color: var(--warn); }
+  .risk-card.bad { border-left-color: var(--bad); }
+  .risk-card h4 { margin: 0 0 6px; }
+  .risk-card .level { font-size: 0.78rem; text-transform: uppercase; color: var(--muted); }
+
+  /* Checklist */
+  .checklist-cat { margin-bottom: 20px; }
+  .checklist-cat h3 { margin-bottom: 10px; }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+  }
+  .check-item:hover { background: var(--card-2); }
+  .check-item input[type=checkbox] {
+    margin-top: 4px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+  .check-item.done label {
+    text-decoration: line-through;
+    opacity: 0.55;
+  }
+  .check-item label { cursor: pointer; flex: 1; }
+  .reset-btn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .reset-btn:hover { color: var(--text); }
+
+  /* Comparables */
+  .comp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .comp-card {
+    background: var(--card-2);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .comp-card.star { border-color: var(--accent); }
+  .comp-card .star-tag {
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .comp-card .price { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+  .comp-card .meta { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+  .comp-card .calc { margin-top: 8px; font-size: 0.85rem; }
+
+  a { color: var(--accent); }
+  a:hover { color: #7dd3fc; }
+  .sources li { margin-bottom: 6px; }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 30px 20px;
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .filters select, .filters input {
+    background: var(--card-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+  .filters label { font-size: 0.9rem; color: var(--muted); }
+
+  /* Chart container */
+  .chart-wrap { position: relative; height: 380px; }
+
+  .info-box {
+    background: rgba(56,189,248,0.08);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 0.95rem;
+  }
+  .warn-box {
+    background: rgba(245,158,11,0.1);
+    border-left: 3px solid var(--warn);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 0.95rem;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .toc {
+    background: var(--card);
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    border: 1px solid var(--border);
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 0.95rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc a { text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container">
+    <h1>🏡 50 avenue du Docteur Paul Soufron</h1>
+    <div class="subtitle">19600 Larche · Corrèze · Nouvelle-Aquitaine</div>
+
+    <div class="price-line">
+      <div class="price-tag">284 000 €</div>
+      <div class="price-sub">FAI vendeur · 1 797 €/m² · annonce CONTACT IMMO Larche</div>
+    </div>
+
+    <div class="verdict">
+      <strong>Verdict :</strong> prix légèrement au-dessus de la médiane Larche (~1 700 €/m²) mais <strong>cohérent</strong> vu piscine récente + travaux. <strong>Cible négo : 258 000 - 270 000 €</strong>, plafond 280 000 €.
+    </div>
+
+    <div class="key-stats">
+      <div class="stat"><div class="label">Surface</div><div class="value">158 m²</div></div>
+      <div class="stat"><div class="label">Pièces</div><div class="value">7 (4 ch.)</div></div>
+      <div class="stat"><div class="label">Terrain</div><div class="value">1 237 m²</div></div>
+      <div class="stat"><div class="label">DPE</div><div class="value">D <span class="badge good">OK</span></div></div>
+      <div class="stat"><div class="label">GES</div><div class="value">A <span class="badge good">Excellent</span></div></div>
+      <div class="stat"><div class="label">Piscine</div><div class="value">8×3 m sel</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="toc">
+    <h3>📑 Sommaire</h3>
+    <ol>
+      <li><a href="#simulateur">Simulateur de négociation</a></li>
+      <li><a href="#carte">Carte des transactions DVF</a></li>
+      <li><a href="#avenue">Tableau ventes Av. Soufron</a></li>
+      <li><a href="#dispersion">Graphique dispersion €/m²</a></li>
+      <li><a href="#comparables">Comparables ciblés</a></li>
+      <li><a href="#commune">La commune de Larche</a></li>
+      <li><a href="#risques">Risques naturels</a></li>
+      <li><a href="#checklist">Checklist d'achat</a></li>
+      <li><a href="#strategie">Stratégie de négociation</a></li>
+      <li><a href="#sources">Sources</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. SIMULATEUR -->
+  <section id="simulateur">
+    <h2>💰 Simulateur de négociation</h2>
+    <p>Ajustez les curseurs pour voir l'impact en temps réel sur le prix au m², les frais notaire et la mensualité.</p>
+
+    <div class="simulator">
+      <div>
+        <div class="slider-group">
+          <label>Prix de vente négocié <span class="v" id="vPrix">270 000 €</span></label>
+          <input type="range" id="prix" min="220000" max="290000" step="1000" value="270000">
+        </div>
+        <div class="slider-group">
+          <label>Apport personnel <span class="v" id="vApport">45 000 €</span></label>
+          <input type="range" id="apport" min="0" max="120000" step="5000" value="45000">
+        </div>
+        <div class="slider-group">
+          <label>Durée du prêt <span class="v" id="vDuree">20 ans</span></label>
+          <input type="range" id="duree" min="10" max="25" step="5" value="20">
+        </div>
+        <div class="slider-group">
+          <label>Taux nominal annuel <span class="v" id="vTaux">3,50 %</span></label>
+          <input type="range" id="taux" min="2.5" max="5.0" step="0.05" value="3.5">
+        </div>
+      </div>
+      <div class="results">
+        <div class="row"><span>Prix au m² recalculé</span><span class="v" id="rEuroM2">—</span></div>
+        <div class="row"><span>Marge vs prix demandé</span><span class="v" id="rMarge">—</span></div>
+        <div class="row"><span>Frais notaire estimés (~8,3 %)</span><span class="v" id="rNotaire">—</span></div>
+        <div class="row"><span>Coût total acquisition</span><span class="v" id="rTotal">—</span></div>
+        <div class="row"><span>Capital emprunté</span><span class="v" id="rEmprunt">—</span></div>
+        <div class="row highlight"><span>Mensualité (hors assurance)</span><span class="v" id="rMensu">—</span></div>
+        <div class="row"><span>Coût total des intérêts</span><span class="v" id="rInterets">—</span></div>
+      </div>
+    </div>
+    <div class="info-box">
+      <strong>Référence marché :</strong> médiane Larche maisons (DVF 2021-2025) ≈ <strong>2 000 €/m²</strong>, médiane sur Av. Soufron ≈ <strong>1 800 €/m²</strong>. Le bien à 1 797 €/m² (prix demandé) est dans la fourchette haute justifiée par piscine + travaux récents.
+    </div>
+  </section>
+
+  <!-- 2. CARTE -->
+  <section id="carte">
+    <h2>🗺️ Carte des transactions DVF (2021-2025)</h2>
+    <p>Toutes les ventes immobilières géolocalisées à Larche sur 5 ans. Le bien étudié est en <strong>vert ⭐</strong>. Cliquez sur un point pour voir les détails.</p>
+
+    <div class="filters">
+      <label>Type :
+        <select id="filterType">
+          <option value="all">Tous</option>
+          <option value="Maison">Maisons</option>
+          <option value="Appartement">Appartements</option>
+        </select>
+      </label>
+      <label>Année :
+        <select id="filterYear">
+          <option value="all">Toutes</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+          <option value="2021">2021</option>
+        </select>
+      </label>
+      <label>Surface min :
+        <input type="number" id="filterSurfMin" min="0" max="500" step="10" placeholder="0" style="width:80px">
+      </label>
+    </div>
+
+    <div id="map"></div>
+    <div class="map-legend">
+      <span><span class="dot" style="background: #22c55e;"></span> 50 av. Dr Paul Soufron (cible)</span>
+      <span><span class="dot" style="background: #38bdf8;"></span> Maison vendue</span>
+      <span><span class="dot" style="background: #f59e0b;"></span> Appartement vendu</span>
+      <span><span class="dot" style="background: #94a3b8;"></span> Autre (terrain, local, etc.)</span>
+    </div>
+  </section>
+
+  <!-- 3. TABLEAU AVENUE SOUFRON -->
+  <section id="avenue">
+    <h2>📊 Maisons vendues sur l'Av. Doc Paul Soufron (2021-2025)</h2>
+    <p>Cliquez sur les en-têtes pour trier. <strong>11 transactions de maisons individuelles.</strong></p>
+
+    <div class="table-wrap">
+      <table id="soufronTable">
+        <thead>
+          <tr>
+            <th data-sort="date">Date ▾</th>
+            <th data-sort="num">N°</th>
+            <th data-sort="surface">Surface</th>
+            <th data-sort="pieces">Pièces</th>
+            <th data-sort="terrain">Terrain</th>
+            <th data-sort="prix">Prix</th>
+            <th data-sort="eurom2">€/m²</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="info-box">
+      ⭐ <strong>Comparable n°1 :</strong> n°11 (juin 2022) à 215 m² + 885 m² terrain → 325 000 € (1 512 €/m²). Maison du même type à 80 m. Actualisée + équivalence piscine, votre bien vaut <strong>~273-283 k€</strong>.
+    </div>
+  </section>
+
+  <!-- 4. GRAPHIQUE -->
+  <section id="dispersion">
+    <h2>📈 Dispersion €/m² des maisons à Larche</h2>
+    <p>Chaque point = une maison vendue. Axe X = surface, axe Y = €/m². Le bien étudié est marqué en vert.</p>
+    <div class="chart-wrap">
+      <canvas id="scatterChart"></canvas>
+    </div>
+  </section>
+
+  <!-- 5. COMPARABLES -->
+  <section id="comparables">
+    <h2>🎯 Comparables ciblés (grandes maisons + grand terrain)</h2>
+    <div class="comp-grid">
+      <div class="comp-card star">
+        <div><span class="star-tag">⭐ MEILLEUR</span></div>
+        <h4>11 av. Dr Paul Soufron</h4>
+        <div class="price">325 000 €</div>
+        <div class="meta">215 m² · 6 p · terrain 885 m² · juin 2022</div>
+        <div class="calc">→ <strong>1 512 €/m²</strong> · à ~80 m du n°50</div>
+      </div>
+      <div class="comp-card">
+        <h4>5 Les Garennes</h4>
+        <div class="price">360 000 €</div>
+        <div class="meta">166 m² · 6 p · terrain 1 163 m² · juin 2023</div>
+        <div class="calc">→ 2 169 €/m² · standing supérieur</div>
+      </div>
+      <div class="comp-card">
+        <h4>52 rue Alexis Jaubert</h4>
+        <div class="price">205 000 €</div>
+        <div class="meta">176 m² · 6 p · terrain 541 m² · jan. 2024</div>
+        <div class="calc">→ 1 165 €/m² · état moyen probable</div>
+      </div>
+      <div class="comp-card">
+        <h4>50 rue Alfred Vitrat</h4>
+        <div class="price">207 000 €</div>
+        <div class="meta">130 m² · 7 p · terrain 627 m² · fév. 2024</div>
+        <div class="calc">→ 1 592 €/m² · sans piscine</div>
+      </div>
+      <div class="comp-card">
+        <h4>9 rue du Moulin</h4>
+        <div class="price">168 000 €</div>
+        <div class="meta">167 m² · 5 p · terrain 552 m² · sept. 2024</div>
+        <div class="calc">→ 1 006 €/m² · état dégradé probable</div>
+      </div>
+      <div class="comp-card">
+        <h4>5786 Aux Termes</h4>
+        <div class="price">400 000 €</div>
+        <div class="meta">180 m² · 5 p · terrain 412 m² · mai 2022</div>
+        <div class="calc">→ 2 222 €/m² · standing élevé</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. COMMUNE -->
+  <section id="commune">
+    <h2>🏛️ La commune de Larche (19600)</h2>
+    <div class="grid-2">
+      <div>
+        <h3>Démographie & économie</h3>
+        <ul>
+          <li><strong>1 668 habitants</strong> (estim. 2026) · −0,5 %/an</li>
+          <li>Densité 289 hab./km² · bourg périurbain</li>
+          <li>Revenu médian foyer : <strong>23 740 €</strong> (au-dessus moyenne nationale)</li>
+          <li>Chômage : 5,4 % · sécurité élevée (12 vols/dégradations en 2025)</li>
+          <li>Intercommunalité : <strong>CA Bassin de Brive</strong> (107 000 hab., 59 % emploi salarié 19)</li>
+          <li>Distance Brive : 14,7 km / 19 min en voiture (A89 + RD)</li>
+          <li>Aéroport Brive-Vallée de la Dordogne (Paris-Orly quotidien)</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Équipements (à pied depuis le n°50)</h3>
+        <ul>
+          <li>✅ Maison médicale (n°5)</li>
+          <li>✅ La Poste (n°5)</li>
+          <li>✅ Caisse d'Épargne (n°2)</li>
+          <li>✅ <strong>Collège Anna de Noailles</strong> (n°34, 582 élèves, 91 % DNB)</li>
+          <li>✅ École primaire publique</li>
+          <li>✅ Pharmacie · dentiste</li>
+          <li>❌ <strong>Pas de supermarché</strong> · ❌ pas de médecin résident (la commune recrute)</li>
+          <li>→ Dépendance Brive (15 min) pour courses & santé spécialisée</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. RISQUES -->
+  <section id="risques">
+    <h2>⚠️ Risques naturels & techniques</h2>
+    <div class="risks">
+      <div class="risk-card bad">
+        <div class="level">🔴 À VÉRIFIER PRIORITÉ 1</div>
+        <h4>PPRI Vézère</h4>
+        <p>PPRI approuvé 2002, révisé 2016. Larche concernée. Le n°50 est probablement hors zone (bourg nord), à <strong>vérifier le plan de zonage en mairie</strong>.</p>
+        <a href="https://www.correze.gouv.fr/Action-de-l-Etat/Securite-et-protection-des-populations/Securite-Civile/Risques-naturels-et-technologiques/Risque-Inondation/PPRI-approuves" target="_blank">Plan de prévention →</a>
+      </div>
+      <div class="risk-card warn">
+        <div class="level">🟡 ATTENTION</div>
+        <h4>Argile / retrait-gonflement</h4>
+        <p>Aléa moyen sur le bassin de Brive. Risque de fissures sur constructions anciennes. À vérifier sur Géorisques.</p>
+        <a href="https://www.georisques.gouv.fr/" target="_blank">Géorisques →</a>
+      </div>
+      <div class="risk-card warn">
+        <div class="level">🟡 ATTENTION</div>
+        <h4>Radon</h4>
+        <p>Corrèze classée zone à potentiel radon. Mesure recommandée vu le rez-de-jardin habité.</p>
+      </div>
+      <div class="risk-card good">
+        <div class="level">🟢 FAIBLE</div>
+        <h4>Sismicité</h4>
+        <p>Zone 1 (très faible). Aucune contrainte particulière.</p>
+      </div>
+      <div class="risk-card warn">
+        <div class="level">🟡 SPÉCIFIQUE BIEN</div>
+        <h4>DPE D = marge faible</h4>
+        <p>D = 212 kWh/m²/an. Pas de risque "passoire" à court terme. Mais à long terme prévoir budget isolation 15-25 k€ pour passer en C.</p>
+      </div>
+      <div class="risk-card warn">
+        <div class="level">🟡 SPÉCIFIQUE BIEN</div>
+        <h4>Bruit avenue passante</h4>
+        <p>"Au calme" annoncé à challenger sur place : RD passante. Visiter aux heures de pointe (7-9h, 17-19h).</p>
+      </div>
+      <div class="risk-card warn">
+        <div class="level">🟡 SPÉCIFIQUE BIEN</div>
+        <h4>Piscine au sel</h4>
+        <p>Vérifier <strong>déclaration H1</strong> (taxe foncière), conformité sécurité (alarme/barrière), entretien ~600-1 200 €/an, cellule sel à changer tous les 5-7 ans.</p>
+      </div>
+      <div class="risk-card warn">
+        <div class="level">🟡 À CONFIRMER</div>
+        <h4>Type de gaz</h4>
+        <p>Probablement <strong>gaz citerne</strong> (pas de réseau ville à Larche). Vérifier contrat (location/propriété), fournisseur, 2 ans de factures.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. CHECKLIST -->
+  <section id="checklist">
+    <h2>✅ Checklist d'achat — interactive</h2>
+    <p>Vos cochages sont sauvegardés automatiquement dans votre navigateur. <button class="reset-btn" onclick="resetChecklist()">Tout réinitialiser</button></p>
+
+    <div class="checklist-cat">
+      <h3>📋 Documents à demander</h3>
+      <div id="cat-docs"></div>
+    </div>
+    <div class="checklist-cat">
+      <h3>🏠 Vérifications sur le bien</h3>
+      <div id="cat-bien"></div>
+    </div>
+    <div class="checklist-cat">
+      <h3>🏘️ Visite & environnement</h3>
+      <div id="cat-visite"></div>
+    </div>
+    <div class="checklist-cat">
+      <h3>🏛️ Mairie & urbanisme</h3>
+      <div id="cat-mairie"></div>
+    </div>
+    <div class="checklist-cat">
+      <h3>💼 Vendeur & finances</h3>
+      <div id="cat-vendeur"></div>
+    </div>
+  </section>
+
+  <!-- 9. STRATÉGIE -->
+  <section id="strategie">
+    <h2>🎯 Stratégie de négociation</h2>
+    <ol>
+      <li><strong>Visite avec checklist</strong> — Photos + notes sur chaque point d'attention.</li>
+      <li><strong>Faire chiffrer</strong> les éventuels rafraîchissements identifiés (peinture, sols, salle de bain, isolation combles) → typiquement 5-30 k€.</li>
+      <li><strong>Première offre : 258 000 € (−9,2 %)</strong>, justifiée par :
+        <ul>
+          <li>DVF du n°11 (1 512 €/m² en 2022) → équivalent ~273 k€ avec piscine</li>
+          <li>Marché Larche atone (−0,9 % en 2025)</li>
+          <li>Chiffrage des éventuels travaux</li>
+          <li>DPE D à 18 kWh du seuil F (à surveiller)</li>
+        </ul>
+      </li>
+      <li><strong>Position de repli : 268-272 k€</strong></li>
+      <li><strong>Plafond psychologique : 280 k€</strong>, sauf preuve objective de "aucun travaux à prévoir" pendant 10 ans (toiture, élec, chaudière, fenêtres).</li>
+      <li><strong>Conditions suspensives essentielles :</strong> obtention prêt + ERP complet + certificat d'urbanisme + conformité piscine.</li>
+    </ol>
+    <div class="warn-box">
+      ⚠️ <strong>Ne JAMAIS signer le compromis sans</strong> : ERP complet, DPE complet, attestation conformité piscine, factures travaux récents, plan zonage PPRI Vézère, certificat d'urbanisme.
+    </div>
+  </section>
+
+  <!-- 10. SOURCES -->
+  <section id="sources">
+    <h2>📚 Sources & liens utiles</h2>
+    <ul class="sources">
+      <li><a href="https://www.leboncoin.fr/ad/ventes_immobilieres/3176920773" target="_blank">Annonce Leboncoin n°3176920773</a> — CONTACT IMMO Larche</li>
+      <li><a href="https://www.meilleursagents.com/prix-immobilier/larche-19600/avenue-du-docteur-paul-soufron-1113847300/" target="_blank">Meilleurs Agents — Av. Doc Paul Soufron</a></li>
+      <li><a href="https://www.meilleursagents.com/prix-immobilier/larche-19600/" target="_blank">Meilleurs Agents — Larche 19600</a></li>
+      <li><a href="https://www.pap.fr/vendeur/prix-m2/larche-19600-g13786" target="_blank">PAP — Prix m² Larche</a></li>
+      <li><a href="https://realadvisor.fr/fr/prix-m2-immobilier/19600-larche" target="_blank">RealAdvisor — Prix Larche</a></li>
+      <li><a href="https://www.efficity.com/prix-immobilier-m2/v_larche_19600/" target="_blank">Efficity — Larche</a></li>
+      <li><a href="https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees" target="_blank">DVF géolocalisé — data.gouv.fr</a> (commune 19107 utilisée, années 2021-2025)</li>
+      <li><a href="https://www.larche-correze.fr/" target="_blank">Mairie de Larche</a> — 2 rue Pont Barbazan · 05 55 85 37 53</li>
+      <li><a href="https://www.georisques.gouv.fr/mes-risques/connaitre-les-risques-pres-de-chez-moi/rapport?codeInsee=19107&adresse=50+avenue+du+Docteur+Paul+Soufron+19600+Larche" target="_blank">⚠️ Géorisques — rapport pré-rempli pour le 50 av. Dr Paul Soufron</a></li>
+      <li><a href="https://www.geoportail-urbanisme.gouv.fr/" target="_blank">Géoportail de l'Urbanisme</a> — PLUi du Bassin de Brive à consulter</li>
+      <li><a href="https://www.bien-dans-ma-ville.fr/larche-19-19107/" target="_blank">Bien dans ma ville — Larche</a></li>
+      <li><a href="https://www.letudiant.fr/college/annuaire-des-colleges/fiche/college-anna-de-noailles-19.html" target="_blank">Collège Anna de Noailles — fiche L'Étudiant</a></li>
+    </ul>
+  </section>
+</div>
+
+<footer>
+  Étude personnelle d'aide à la décision · Données arrêtées au 26 avril 2026 · Source DVF officielle data.gouv.fr<br>
+  Aucune valeur contractuelle. Vérifications obligatoires : notaire, diagnostics, mairie.
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// ============ DONNÉES DVF ============
+const DVF_DATA = [{"date":"2021-01-04","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":63.0,"pieces":3,"terrain":541.0,"prix":102000.0,"eurom2":1619,"lat":45.111904,"lon":1.4165,"mutation_id":"2021-277560"},{"date":"2021-02-10","num":"5","voie":"RUE ALEXIS JAUBERT","type":"Appartement","surface":60.0,"pieces":3,"terrain":91.0,"prix":150000.0,"eurom2":2500,"lat":45.122885,"lon":1.413835,"mutation_id":"2021-277878"},{"date":"2021-03-29","num":"44","voie":"RUE ALFRED VITRAT","type":"Maison","surface":88.0,"pieces":4,"terrain":805.0,"prix":145000.0,"eurom2":1648,"lat":45.11471,"lon":1.420461,"mutation_id":"2021-278327"},{"date":"2021-04-14","num":"26","voie":"PEYREFUMADE","type":"Maison","surface":284.0,"pieces":8,"terrain":1955.0,"prix":1040000.0,"eurom2":3662,"lat":45.105945,"lon":1.431309,"mutation_id":"2021-278614"},{"date":"2021-05-07","num":"22","voie":"RUE ALEXIS JAUBERT","type":"Local industriel. commercial ou assimilé","surface":237.0,"pieces":0,"terrain":776.0,"prix":143500.0,"eurom2":605,"lat":45.122446,"lon":1.414203,"mutation_id":"2021-278704"},{"date":"2021-05-07","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":90000.0,"eurom2":1500,"lat":45.111183,"lon":1.417249,"mutation_id":"2021-278752"},{"date":"2021-05-25","num":"20","voie":"IMP D ISSALO","type":"Maison","surface":101.0,"pieces":4,"terrain":579.0,"prix":165000.0,"eurom2":1634,"lat":45.113425,"lon":1.420063,"mutation_id":"2021-278974"},{"date":"2021-05-28","num":"43","voie":"AV DU 19 MARS 1962","type":"Maison","surface":83.0,"pieces":4,"terrain":513.0,"prix":170250.0,"eurom2":2051,"lat":45.117,"lon":1.420046,"mutation_id":"2021-279129"},{"date":"2021-05-29","num":"4","voie":"RUE DU FOUR","type":"Maison","surface":65.0,"pieces":3,"terrain":46.0,"prix":66000.0,"eurom2":1015,"lat":45.122956,"lon":1.41446,"mutation_id":"2021-278983"},{"date":"2021-06-18","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":99000.0,"eurom2":1650,"lat":45.111183,"lon":1.417249,"mutation_id":"2021-279295"},{"date":"2021-06-28","num":"6","voie":"IMP DES VIGNES","type":"Maison","surface":114.0,"pieces":4,"terrain":594.0,"prix":208310.0,"eurom2":1827,"lat":45.114532,"lon":1.419537,"mutation_id":"2021-279434"},{"date":"2021-07-05","num":"9","voie":"CHE DE TABATIN","type":"Maison","surface":80.0,"pieces":4,"terrain":414.0,"prix":172800.0,"eurom2":2160,"lat":45.119328,"lon":1.424201,"mutation_id":"2021-279567"},{"date":"2021-07-06","num":"4","voie":"A PUYJUBERT","type":"Maison","surface":106.0,"pieces":4,"terrain":500.0,"prix":330000.0,"eurom2":3113,"lat":45.124516,"lon":1.437799,"mutation_id":"2021-279566"},{"date":"2021-07-13","num":"56","voie":"RUE ALEXIS JAUBERT","type":"Maison","surface":82.0,"pieces":4,"terrain":552.0,"prix":113250.0,"eurom2":1381,"lat":45.121222,"lon":1.417844,"mutation_id":"2021-279610"},{"date":"2021-07-20","num":"10","voie":"DAUTREMENT","type":"Maison","surface":80.0,"pieces":4,"terrain":345.0,"prix":130000.0,"eurom2":1625,"lat":45.103436,"lon":1.396211,"mutation_id":"2021-280016"},{"date":"2021-07-21","num":"5307","voie":"ISSALO HAUT","type":"Maison","surface":74.0,"pieces":4,"terrain":742.0,"prix":193150.0,"eurom2":2610,"lat":45.114364,"lon":1.425563,"mutation_id":"2021-279538"},{"date":"2021-08-05","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":64500.0,"eurom2":1500,"lat":45.111183,"lon":1.417249,"mutation_id":"2021-279712"},{"date":"2021-09-06","num":"3","voie":"RUE DU MOULIN","type":"Maison","surface":100.0,"pieces":5,"terrain":114.0,"prix":85500.0,"eurom2":855,"lat":45.123441,"lon":1.413652,"mutation_id":"2021-280212"},{"date":"2021-09-09","num":"31","voie":"RUE ALFRED VITRAT","type":"Maison","surface":85.0,"pieces":4,"terrain":562.0,"prix":175000.0,"eurom2":2059,"lat":45.115515,"lon":1.420507,"mutation_id":"2021-280277"},{"date":"2021-09-23","num":"7","voie":"PONT DE BEDENAS","type":"Maison","surface":80.0,"pieces":3,"terrain":957.0,"prix":160000.0,"eurom2":2000,"lat":45.120797,"lon":1.42618,"mutation_id":"2021-280183"},{"date":"2021-09-24","num":"","voie":"A PUYJUBERT","type":"Local industriel. commercial ou assimilé","surface":9.0,"pieces":0,"terrain":500.0,"prix":85000.0,"eurom2":9444,"lat":45.12564,"lon":1.437915,"mutation_id":"2021-280279"},{"date":"2021-10-13","num":"35","voie":"AV DU 19 MARS 1962","type":"Maison","surface":90.0,"pieces":4,"terrain":782.0,"prix":197000.0,"eurom2":2189,"lat":45.117128,"lon":1.419404,"mutation_id":"2021-280678"},{"date":"2021-10-27","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":63.0,"pieces":3,"terrain":390.0,"prix":95225.0,"eurom2":1512,"lat":45.111566,"lon":1.41655,"mutation_id":"2021-280712"},{"date":"2021-10-29","num":"5765","voie":"DAUTREMENT","type":"Maison","surface":96.0,"pieces":1,"terrain":500.0,"prix":170000.0,"eurom2":1771,"lat":45.104085,"lon":1.394614,"mutation_id":"2021-280662"},{"date":"2021-12-16","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":90000.0,"eurom2":1500,"lat":45.111183,"lon":1.417249,"mutation_id":"2021-281208"},{"date":"2021-12-21","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":72000.0,"eurom2":1674,"lat":45.111183,"lon":1.417249,"mutation_id":"2021-281205"},{"date":"2022-01-04","num":"39","voie":"AV DU 19 MARS 1962","type":"Maison","surface":160.0,"pieces":5,"terrain":1008.0,"prix":155000.0,"eurom2":969,"lat":45.116725,"lon":1.419998,"mutation_id":"2022-278085"},{"date":"2022-01-11","num":"19","voie":"RUE ALEXIS JAUBERT","type":"Appartement","surface":48.0,"pieces":2,"terrain":null,"prix":96500.0,"eurom2":2010,"lat":45.12266,"lon":1.415425,"mutation_id":"2022-278029"},{"date":"2022-01-28","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":65000.0,"eurom2":1512,"lat":45.111183,"lon":1.417249,"mutation_id":"2022-278214"},{"date":"2022-03-31","num":"5654","voie":"AV DU DOC PAUL SOUFRON","type":"Local industriel. commercial ou assimilé","surface":318.0,"pieces":0,"terrain":317.0,"prix":150000.0,"eurom2":472,"lat":45.121733,"lon":1.415433,"mutation_id":"2022-272367"},{"date":"2022-04-21","num":"7","voie":"RUE ALEXIS JAUBERT","type":"Local industriel. commercial ou assimilé","surface":120.0,"pieces":0,"terrain":143.0,"prix":186100.0,"eurom2":1551,"lat":45.122884,"lon":1.413957,"mutation_id":"2022-272602"},{"date":"2022-05-06","num":"5786","voie":"AUX TERMES","type":"Maison","surface":180.0,"pieces":5,"terrain":412.0,"prix":400000.0,"eurom2":2222,"lat":45.12491,"lon":1.442949,"mutation_id":"2022-272845"},{"date":"2022-06-02","num":"11","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":215.0,"pieces":6,"terrain":885.0,"prix":325000.0,"eurom2":1512,"lat":45.120347,"lon":1.415858,"mutation_id":"2022-273310"},{"date":"2022-06-09","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":42.0,"pieces":2,"terrain":null,"prix":67000.0,"eurom2":1595,"lat":45.111183,"lon":1.417249,"mutation_id":"2022-273399"},{"date":"2022-06-23","num":"25","voie":"CHE DE PUYJUBERT","type":"Maison","surface":97.0,"pieces":5,"terrain":959.0,"prix":213000.0,"eurom2":2196,"lat":45.126443,"lon":1.437573,"mutation_id":"2022-273728"},{"date":"2022-07-01","num":"5312","voie":"LES PAILLARDS","type":"Maison","surface":112.0,"pieces":5,"terrain":780.0,"prix":205000.0,"eurom2":1830,"lat":45.114998,"lon":1.414369,"mutation_id":"2022-273994"},{"date":"2022-07-04","num":"6","voie":"RUE DU CHANT DE MERLE","type":"Maison","surface":104.0,"pieces":4,"terrain":295.0,"prix":135000.0,"eurom2":1298,"lat":45.113705,"lon":1.417352,"mutation_id":"2022-274230"},{"date":"2022-08-18","num":"1","voie":"RUE DE LA CROIX DE BEDENAS","type":"Maison","surface":105.0,"pieces":4,"terrain":932.0,"prix":144000.0,"eurom2":1371,"lat":45.119966,"lon":1.425798,"mutation_id":"2022-274934"},{"date":"2022-08-31","num":"60","voie":"RUE ALFRED VITRAT","type":"Maison","surface":87.0,"pieces":4,"terrain":714.0,"prix":155000.0,"eurom2":1782,"lat":45.116022,"lon":1.420935,"mutation_id":"2022-275193"},{"date":"2022-09-14","num":"16","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":120.0,"pieces":5,"terrain":313.0,"prix":72800.0,"eurom2":607,"lat":45.121165,"lon":1.415073,"mutation_id":"2022-275423"},{"date":"2022-09-15","num":"20","voie":"RUE ALEXIS JAUBERT","type":"Appartement","surface":69.0,"pieces":2,"terrain":null,"prix":77000.0,"eurom2":1116,"lat":45.122591,"lon":1.414015,"mutation_id":"2022-275446"},{"date":"2022-10-24","num":"33","voie":"RUE ALFRED VITRAT","type":"Maison","surface":104.0,"pieces":5,"terrain":560.0,"prix":156750.0,"eurom2":1507,"lat":45.115632,"lon":1.420411,"mutation_id":"2022-276392"},{"date":"2022-10-27","num":"38","voie":"RIGNAC","type":"Maison","surface":80.0,"pieces":3,"terrain":12275.0,"prix":230000.0,"eurom2":2875,"lat":45.109388,"lon":1.423205,"mutation_id":"2022-276540"},{"date":"2022-11-08","num":"44","voie":"RUE ALEXIS JAUBERT","type":"Local industriel. commercial ou assimilé","surface":355.0,"pieces":0,"terrain":207.0,"prix":40000.0,"eurom2":113,"lat":45.121837,"lon":1.416442,"mutation_id":"2022-276779"},{"date":"2022-11-30","num":"62","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":67.0,"pieces":3,"terrain":927.0,"prix":195000.0,"eurom2":2910,"lat":45.116743,"lon":1.415602,"mutation_id":"2022-277221"},{"date":"2022-12-19","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":61.0,"pieces":3,"terrain":null,"prix":136250.0,"eurom2":2234,"lat":45.111183,"lon":1.417249,"mutation_id":"2022-277408"},{"date":"2022-12-19","num":"5","voie":"AV DU DOC PAUL SOUFRON","type":"Local industriel. commercial ou assimilé","surface":231.0,"pieces":0,"terrain":980.0,"prix":180000.0,"eurom2":779,"lat":45.121001,"lon":1.415838,"mutation_id":"2022-277708"},{"date":"2022-12-28","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":138000.0,"eurom2":2300,"lat":45.111183,"lon":1.417249,"mutation_id":"2022-277963"},{"date":"2023-02-03","num":"4","voie":"DAUTREMENT","type":"Maison","surface":102.0,"pieces":4,"terrain":594.0,"prix":207000.0,"eurom2":2029,"lat":45.103531,"lon":1.397574,"mutation_id":"2023-225177"},{"date":"2023-02-06","num":"12","voie":"CHE DE PUYJUBERT","type":"Maison","surface":105.0,"pieces":4,"terrain":500.0,"prix":200000.0,"eurom2":1905,"lat":45.123646,"lon":1.43505,"mutation_id":"2023-225433"},{"date":"2023-02-15","num":"3","voie":"CHE DE TABATIN","type":"Maison","surface":55.0,"pieces":3,"terrain":null,"prix":40000.0,"eurom2":727,"lat":45.119761,"lon":1.424398,"mutation_id":"2023-225590"},{"date":"2023-02-27","num":"22","voie":"DAUTREMENT","type":"Maison","surface":80.0,"pieces":3,"terrain":695.0,"prix":108000.0,"eurom2":1350,"lat":45.103641,"lon":1.392578,"mutation_id":"2023-225980"},{"date":"2023-03-08","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":75000.0,"eurom2":1744,"lat":45.111183,"lon":1.417249,"mutation_id":"2023-226054"},{"date":"2023-03-16","num":"4","voie":"CHE DE PUYJUBERT","type":"Maison","surface":90.0,"pieces":4,"terrain":500.0,"prix":266000.0,"eurom2":2956,"lat":45.122847,"lon":1.433967,"mutation_id":"2023-225853"},{"date":"2023-03-30","num":"11","voie":"IMP DES VIGNES","type":"Maison","surface":93.0,"pieces":4,"terrain":565.0,"prix":89500.0,"eurom2":962,"lat":45.114134,"lon":1.420582,"mutation_id":"2023-226463"},{"date":"2023-04-21","num":"14","voie":"CHE DE TABATIN","type":"Maison","surface":152.0,"pieces":5,"terrain":1658.0,"prix":382000.0,"eurom2":2513,"lat":45.118574,"lon":1.424115,"mutation_id":"2023-226714"},{"date":"2023-04-24","num":"62","voie":"AV DU 19 MARS 1962","type":"Maison","surface":103.0,"pieces":5,"terrain":725.0,"prix":173000.0,"eurom2":1680,"lat":45.116146,"lon":1.421326,"mutation_id":"2023-226601"},{"date":"2023-05-15","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":61.0,"pieces":3,"terrain":null,"prix":98000.0,"eurom2":1607,"lat":45.111183,"lon":1.417249,"mutation_id":"2023-227053"},{"date":"2023-06-26","num":"5","voie":"LES GARENNES","type":"Maison","surface":166.0,"pieces":6,"terrain":500.0,"prix":360000.0,"eurom2":2169,"lat":45.111558,"lon":1.428028,"mutation_id":"2023-227774"},{"date":"2023-08-21","num":"26","voie":"PEYREFUMADE","type":"Maison","surface":284.0,"pieces":8,"terrain":1955.0,"prix":1130705.0,"eurom2":3981,"lat":45.105945,"lon":1.431309,"mutation_id":"2023-228965"},{"date":"2023-08-25","num":"4","voie":"RUE ALFRED VITRAT","type":"Maison","surface":86.0,"pieces":4,"terrain":602.0,"prix":151000.0,"eurom2":1756,"lat":45.114866,"lon":1.418378,"mutation_id":"2023-229112"},{"date":"2023-08-31","num":"1","voie":"RIGNAC","type":"Local industriel. commercial ou assimilé","surface":210.0,"pieces":0,"terrain":600.0,"prix":470000.0,"eurom2":2238,"lat":45.113367,"lon":1.41674,"mutation_id":"2023-228869"},{"date":"2023-09-01","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":98500.0,"eurom2":1642,"lat":45.111183,"lon":1.417249,"mutation_id":"2023-229031"},{"date":"2023-09-04","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":70000.0,"eurom2":1628,"lat":45.111183,"lon":1.417249,"mutation_id":"2023-229051"},{"date":"2023-09-14","num":"5258","voie":"CROIX DE BEDENAS","type":"Maison","surface":70.0,"pieces":2,"terrain":472.0,"prix":149000.0,"eurom2":2129,"lat":45.120902,"lon":1.422207,"mutation_id":"2023-229130"},{"date":"2023-09-18","num":"5726","voie":"CHE DE TABATIN","type":"Maison","surface":263.0,"pieces":4,"terrain":500.0,"prix":215000.0,"eurom2":817,"lat":45.119326,"lon":1.425276,"mutation_id":"2023-229313"},{"date":"2023-09-29","num":"10","voie":"RUE DES PAILLARDS","type":"Maison","surface":101.0,"pieces":4,"terrain":823.0,"prix":180000.0,"eurom2":1782,"lat":45.11679,"lon":1.41446,"mutation_id":"2023-229425"},{"date":"2023-12-22","num":"1","voie":"RUE RAYMOND II DE TURENNE","type":"Maison","surface":55.0,"pieces":2,"terrain":30.0,"prix":23000.0,"eurom2":418,"lat":45.123202,"lon":1.413961,"mutation_id":"2023-231203"},{"date":"2024-01-11","num":"52","voie":"RUE ALEXIS JAUBERT","type":"Local industriel. commercial ou assimilé","surface":483.0,"pieces":0,"terrain":541.0,"prix":205000.0,"eurom2":424,"lat":45.121397,"lon":1.417539,"mutation_id":"2024-202773"},{"date":"2024-01-15","num":"25","voie":"RIGNAC","type":"Maison","surface":78.0,"pieces":4,"terrain":500.0,"prix":175000.0,"eurom2":2244,"lat":45.109552,"lon":1.424187,"mutation_id":"2024-202673"},{"date":"2024-02-01","num":"9","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":65.0,"pieces":3,"terrain":775.0,"prix":140000.0,"eurom2":2154,"lat":45.12062,"lon":1.415855,"mutation_id":"2024-202860"},{"date":"2024-02-28","num":"50","voie":"RUE ALFRED VITRAT","type":"Maison","surface":130.0,"pieces":7,"terrain":627.0,"prix":207000.0,"eurom2":1592,"lat":45.115164,"lon":1.420849,"mutation_id":"2024-203354"},{"date":"2024-03-07","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":73000.0,"eurom2":1698,"lat":45.111183,"lon":1.417249,"mutation_id":"2024-203478"},{"date":"2024-03-20","num":"4","voie":"RUE DU PONT DE BEDENAS","type":"Maison","surface":83.0,"pieces":3,"terrain":694.0,"prix":209400.0,"eurom2":2523,"lat":45.120245,"lon":1.425779,"mutation_id":"2024-203643"},{"date":"2024-03-29","num":"27","voie":"CHE DE PUYJUBERT","type":"Maison","surface":128.0,"pieces":4,"terrain":500.0,"prix":208940.0,"eurom2":1632,"lat":45.126625,"lon":1.437781,"mutation_id":"2024-204094"},{"date":"2024-04-05","num":"5751","voie":"RIGNAC","type":"Maison","surface":108.0,"pieces":4,"terrain":500.0,"prix":200500.0,"eurom2":1856,"lat":45.106133,"lon":1.423186,"mutation_id":"2024-204075"},{"date":"2024-05-07","num":"62","voie":"AV DU 19 MARS 1962","type":"Maison","surface":103.0,"pieces":5,"terrain":725.0,"prix":187000.0,"eurom2":1816,"lat":45.116146,"lon":1.421326,"mutation_id":"2024-204400"},{"date":"2024-05-27","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":63.0,"pieces":3,"terrain":313.0,"prix":130625.0,"eurom2":2073,"lat":45.111403,"lon":1.417585,"mutation_id":"2024-205038"},{"date":"2024-05-28","num":"8","voie":"RUE RAYMOND II DE TURENNE","type":"Appartement","surface":58.0,"pieces":2,"terrain":null,"prix":55000.0,"eurom2":948,"lat":45.123205,"lon":1.413544,"mutation_id":"2024-205020"},{"date":"2024-06-19","num":"10","voie":"CHE DE TABATIN","type":"Maison","surface":72.0,"pieces":4,"terrain":820.0,"prix":115000.0,"eurom2":1597,"lat":45.119123,"lon":1.423633,"mutation_id":"2024-205290"},{"date":"2024-06-28","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":98000.0,"eurom2":1633,"lat":45.111183,"lon":1.417249,"mutation_id":"2024-205354"},{"date":"2024-07-29","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":135170.0,"eurom2":2253,"lat":45.111183,"lon":1.417249,"mutation_id":"2024-205953"},{"date":"2024-07-31","num":"18","voie":"RUE DU PONT DE BEDENAS","type":"Appartement","surface":77.0,"pieces":4,"terrain":824.0,"prix":138700.0,"eurom2":1801,"lat":45.119532,"lon":1.427998,"mutation_id":"2024-205949"},{"date":"2024-08-01","num":"8","voie":"CHAUFFOUR","type":"Maison","surface":51.0,"pieces":3,"terrain":1011.0,"prix":120000.0,"eurom2":2353,"lat":45.121705,"lon":1.432579,"mutation_id":"2024-206221"},{"date":"2024-09-05","num":"9","voie":"RUE DU MOULIN","type":"Maison","surface":167.0,"pieces":5,"terrain":552.0,"prix":168000.0,"eurom2":1006,"lat":45.123705,"lon":1.41332,"mutation_id":"2024-206910"},{"date":"2024-09-23","num":"38","voie":"RUE ALEXIS JAUBERT","type":"Maison","surface":53.0,"pieces":3,"terrain":63.0,"prix":60000.0,"eurom2":1132,"lat":45.122022,"lon":1.41604,"mutation_id":"2024-206849"},{"date":"2024-09-27","num":"5750","voie":"RIGNAC","type":"Maison","surface":127.0,"pieces":5,"terrain":1428.0,"prix":338950.0,"eurom2":2669,"lat":45.108998,"lon":1.424524,"mutation_id":"2024-206869"},{"date":"2024-10-22","num":"17","voie":"IMP D ISSALO","type":"Maison","surface":96.0,"pieces":4,"terrain":676.0,"prix":211800.0,"eurom2":2206,"lat":45.113748,"lon":1.420333,"mutation_id":"2024-207389"},{"date":"2024-10-28","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":92000.0,"eurom2":2140,"lat":45.111183,"lon":1.417249,"mutation_id":"2024-207692"},{"date":"2024-11-05","num":"18","voie":"CHE DE PUYJUBERT","type":"Maison","surface":89.0,"pieces":4,"terrain":500.0,"prix":146520.0,"eurom2":1646,"lat":45.124266,"lon":1.435998,"mutation_id":"2024-207571"},{"date":"2024-12-10","num":"86","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":110.0,"pieces":4,"terrain":596.0,"prix":175000.0,"eurom2":1591,"lat":45.11416,"lon":1.416052,"mutation_id":"2024-208172"},{"date":"2025-02-11","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":43.0,"pieces":2,"terrain":null,"prix":70000.0,"eurom2":1628,"lat":45.111183,"lon":1.417249,"mutation_id":"2025-216153"},{"date":"2025-03-12","num":"47","voie":"RUE ALEXIS JAUBERT","type":"Local industriel. commercial ou assimilé","surface":500.0,"pieces":0,"terrain":580.0,"prix":100000.0,"eurom2":200,"lat":45.121475,"lon":1.418733,"mutation_id":"2025-216610"},{"date":"2025-03-25","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":61.0,"pieces":3,"terrain":null,"prix":136000.0,"eurom2":2230,"lat":45.111183,"lon":1.417249,"mutation_id":"2025-216580"},{"date":"2025-04-01","num":"9","voie":"RUE DU PAS ETROIT","type":"Maison","surface":80.0,"pieces":2,"terrain":42.0,"prix":43000.0,"eurom2":538,"lat":45.123225,"lon":1.414018,"mutation_id":"2025-217256"},{"date":"2025-04-17","num":"20","voie":"RUE ALEXIS JAUBERT","type":"Appartement","surface":49.0,"pieces":2,"terrain":null,"prix":61750.0,"eurom2":1260,"lat":45.122591,"lon":1.414015,"mutation_id":"2025-217207"},{"date":"2025-05-13","num":"8","voie":"RUE LOUIS DE NOAILLES","type":"Maison","surface":114.0,"pieces":7,"terrain":61.0,"prix":30000.0,"eurom2":263,"lat":45.123055,"lon":1.41399,"mutation_id":"2025-217721"},{"date":"2025-05-20","num":"8","voie":"CHE DE TABATIN","type":"Maison","surface":104.0,"pieces":4,"terrain":792.0,"prix":174900.0,"eurom2":1682,"lat":45.119515,"lon":1.423903,"mutation_id":"2025-217817"},{"date":"2025-06-27","num":"1","voie":"RUE DU CHANT DE MERLE","type":"Maison","surface":83.0,"pieces":4,"terrain":600.0,"prix":187500.0,"eurom2":2259,"lat":45.11425,"lon":1.416926,"mutation_id":"2025-218339"},{"date":"2025-06-27","num":"3","voie":"LE ROUGIER","type":"Maison","surface":92.0,"pieces":4,"terrain":928.0,"prix":187736.0,"eurom2":2041,"lat":45.110713,"lon":1.432308,"mutation_id":"2025-218396"},{"date":"2025-06-30","num":"23","voie":"AV DU 19 MARS 1962","type":"Maison","surface":98.0,"pieces":4,"terrain":503.0,"prix":211000.0,"eurom2":2153,"lat":45.116168,"lon":1.418836,"mutation_id":"2025-218658"},{"date":"2025-07-16","num":"41","voie":"AV DU 19 MARS 1962","type":"Maison","surface":84.0,"pieces":5,"terrain":533.0,"prix":162180.0,"eurom2":1931,"lat":45.1169,"lon":1.420208,"mutation_id":"2025-218653"},{"date":"2025-07-21","num":"45","voie":"RIGNAC","type":"Maison","surface":99.0,"pieces":5,"terrain":826.0,"prix":263000.0,"eurom2":2657,"lat":45.106605,"lon":1.425244,"mutation_id":"2025-218844"},{"date":"2025-08-06","num":"5799","voie":"LES PAILLARDS","type":"Maison","surface":95.0,"pieces":4,"terrain":500.0,"prix":237000.0,"eurom2":2495,"lat":45.115243,"lon":1.414566,"mutation_id":"2025-219237"},{"date":"2025-08-08","num":"16","voie":"AV DU 19 MARS 1962","type":"Maison","surface":108.0,"pieces":4,"terrain":507.0,"prix":188500.0,"eurom2":1745,"lat":45.115511,"lon":1.417579,"mutation_id":"2025-219366"},{"date":"2025-08-11","num":"7","voie":"PONT DE BEDENAS","type":"Maison","surface":80.0,"pieces":3,"terrain":957.0,"prix":200700.0,"eurom2":2509,"lat":45.120797,"lon":1.42618,"mutation_id":"2025-219180"},{"date":"2025-08-28","num":"1","voie":"PL DU DOCTEUR RENE JAUBERTIE","type":"Maison","surface":59.0,"pieces":3,"terrain":154.0,"prix":210000.0,"eurom2":3559,"lat":45.122011,"lon":1.414477,"mutation_id":"2025-219390"},{"date":"2025-09-24","num":"8","voie":"AV DU DOC PAUL SOUFRON","type":"Local industriel. commercial ou assimilé","surface":110.0,"pieces":0,"terrain":47.0,"prix":120000.0,"eurom2":1091,"lat":45.12235,"lon":1.414768,"mutation_id":"2025-220117"},{"date":"2025-10-28","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":63.0,"pieces":3,"terrain":210.0,"prix":140000.0,"eurom2":2222,"lat":45.111941,"lon":1.417105,"mutation_id":"2025-220735"},{"date":"2025-11-07","num":"33","voie":"AV DU 19 MARS 1962","type":"Maison","surface":111.0,"pieces":5,"terrain":516.0,"prix":155000.0,"eurom2":1396,"lat":45.116685,"lon":1.419462,"mutation_id":"2025-220851"},{"date":"2025-12-05","num":"10","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":99.0,"pieces":5,"terrain":397.0,"prix":165000.0,"eurom2":1667,"lat":45.122303,"lon":1.414684,"mutation_id":"2025-221337"},{"date":"2025-12-05","num":"5122","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":15.0,"pieces":1,"terrain":425.0,"prix":96000.0,"eurom2":6400,"lat":45.12161,"lon":1.41588,"mutation_id":"2025-221391"},{"date":"2025-12-10","num":"17","voie":"AV DU DOC PAUL SOUFRON","type":"Maison","surface":80.0,"pieces":5,"terrain":553.0,"prix":154150.0,"eurom2":1927,"lat":45.119791,"lon":1.415968,"mutation_id":"2025-221490"},{"date":"2025-12-10","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":122500.0,"eurom2":2042,"lat":45.111183,"lon":1.417249,"mutation_id":"2025-221492"},{"date":"2025-12-17","num":"63","voie":"AV DU DOC PAUL SOUFRON","type":"Appartement","surface":60.0,"pieces":3,"terrain":null,"prix":70000.0,"eurom2":1167,"lat":45.111183,"lon":1.417249,"mutation_id":"2025-221658"}]
+;
+
+// Position approximative du n°50 (interpolation sur l'avenue)
+const TARGET = {
+  num: '50',
+  voie: 'AV DU DOC PAUL SOUFRON',
+  lat: 45.1175,
+  lon: 1.4156,
+  surface: 158,
+  prix: 284000,
+  pieces: 7,
+  terrain: 1237
+};
+
+// ============ SIMULATEUR ============
+function fmtEur(n) {
+  return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+}
+function fmtPct(n) {
+  return (n >= 0 ? '+' : '') + n.toFixed(1) + ' %';
+}
+
+function calcMensu(capital, tauxAnnuel, dureeAns) {
+  if (capital <= 0) return 0;
+  const t = tauxAnnuel / 100 / 12;
+  const n = dureeAns * 12;
+  if (t === 0) return capital / n;
+  return capital * t / (1 - Math.pow(1 + t, -n));
+}
+
+function updateSimu() {
+  const prix = +document.getElementById('prix').value;
+  const apport = +document.getElementById('apport').value;
+  const duree = +document.getElementById('duree').value;
+  const taux = +document.getElementById('taux').value;
+
+  document.getElementById('vPrix').textContent = fmtEur(prix);
+  document.getElementById('vApport').textContent = fmtEur(apport);
+  document.getElementById('vDuree').textContent = duree + ' ans';
+  document.getElementById('vTaux').textContent = taux.toFixed(2).replace('.', ',') + ' %';
+
+  const eurom2 = Math.round(prix / TARGET.surface);
+  const marge = ((prix - 284000) / 284000) * 100;
+  const notaire = Math.round(prix * 0.083);
+  const total = prix + notaire;
+  const emprunt = Math.max(0, total - apport);
+  const mensu = calcMensu(emprunt, taux, duree);
+  const interets = mensu * duree * 12 - emprunt;
+
+  document.getElementById('rEuroM2').textContent = fmtEur(eurom2) + '/m²';
+  document.getElementById('rMarge').innerHTML = fmtPct(marge) + (marge < -5 ? ' <span class="badge good">Bonne négo</span>' : marge < 0 ? ' <span class="badge warn">Modeste</span>' : ' <span class="badge bad">Au-dessus prix</span>');
+  document.getElementById('rNotaire').textContent = fmtEur(notaire);
+  document.getElementById('rTotal').textContent = fmtEur(total);
+  document.getElementById('rEmprunt').textContent = fmtEur(emprunt);
+  document.getElementById('rMensu').textContent = fmtEur(Math.round(mensu)) + ' /mois';
+  document.getElementById('rInterets').textContent = fmtEur(Math.round(interets));
+}
+
+['prix', 'apport', 'duree', 'taux'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateSimu);
+});
+updateSimu();
+
+// ============ CARTE LEAFLET ============
+const map = L.map('map').setView([45.1175, 1.4156], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+let mapMarkers = [];
+
+function colorFor(type) {
+  if (type === 'Maison') return '#38bdf8';
+  if (type === 'Appartement') return '#f59e0b';
+  return '#94a3b8';
+}
+
+function refreshMarkers() {
+  mapMarkers.forEach(m => map.removeLayer(m));
+  mapMarkers = [];
+
+  const fType = document.getElementById('filterType').value;
+  const fYear = document.getElementById('filterYear').value;
+  const fSurfMin = +document.getElementById('filterSurfMin').value || 0;
+
+  DVF_DATA.forEach(t => {
+    if (fType !== 'all' && t.type !== fType) return;
+    if (fYear !== 'all' && !t.date.startsWith(fYear)) return;
+    if (t.surface && t.surface < fSurfMin) return;
+
+    const c = L.circleMarker([t.lat, t.lon], {
+      radius: 6,
+      color: colorFor(t.type),
+      fillColor: colorFor(t.type),
+      fillOpacity: 0.7,
+      weight: 1
+    });
+    const popup = `
+      <strong>${t.type}</strong> ${t.num ? 'n°' + t.num : ''} ${t.voie}<br>
+      Date : ${t.date}<br>
+      ${t.surface ? `Surface : ${t.surface} m²<br>` : ''}
+      ${t.pieces ? `Pièces : ${t.pieces}<br>` : ''}
+      ${t.terrain ? `Terrain : ${t.terrain} m²<br>` : ''}
+      <strong>Prix : ${fmtEur(t.prix)}</strong>
+      ${t.eurom2 ? `<br>(${fmtEur(t.eurom2)}/m²)` : ''}
+    `;
+    c.bindPopup(popup);
+    c.addTo(map);
+    mapMarkers.push(c);
+  });
+
+  // Marqueur cible
+  const target = L.circleMarker([TARGET.lat, TARGET.lon], {
+    radius: 14,
+    color: '#22c55e',
+    fillColor: '#22c55e',
+    fillOpacity: 0.85,
+    weight: 3
+  }).addTo(map);
+  target.bindPopup(`
+    <strong>⭐ 50 av. Dr Paul Soufron</strong><br>
+    Le bien étudié<br>
+    Surface : ${TARGET.surface} m² · ${TARGET.pieces} pièces<br>
+    Terrain : ${TARGET.terrain} m²<br>
+    Prix demandé : ${fmtEur(TARGET.prix)}
+  `);
+  target.openPopup();
+  mapMarkers.push(target);
+}
+
+['filterType', 'filterYear', 'filterSurfMin'].forEach(id => {
+  document.getElementById(id).addEventListener('change', refreshMarkers);
+  document.getElementById(id).addEventListener('input', refreshMarkers);
+});
+refreshMarkers();
+
+// ============ TABLEAU SOUFRON ============
+const soufronMaisons = DVF_DATA.filter(t =>
+  t.voie && t.voie.includes('SOUFRON') && t.type === 'Maison' && t.surface && t.surface > 5
+);
+
+let sortKey = 'date';
+let sortAsc = false;
+
+function renderTable() {
+  const tbody = document.querySelector('#soufronTable tbody');
+  const sorted = [...soufronMaisons].sort((a, b) => {
+    let va = a[sortKey], vb = b[sortKey];
+    if (sortKey === 'num') { va = +va || 0; vb = +vb || 0; }
+    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortAsc ? va - vb : vb - va;
+  });
+  tbody.innerHTML = sorted.map(t => {
+    const isStar = t.num === '11' && t.date.startsWith('2022');
+    return `<tr class="${isStar ? 'highlight-row' : ''}">
+      <td>${t.date}</td>
+      <td>${t.num || '-'}</td>
+      <td>${t.surface} m²</td>
+      <td>${t.pieces || '-'}</td>
+      <td>${t.terrain ? t.terrain + ' m²' : '-'}</td>
+      <td>${fmtEur(t.prix)}</td>
+      <td><strong>${fmtEur(t.eurom2)}/m²</strong></td>
+    </tr>`;
+  }).join('');
+}
+document.querySelectorAll('#soufronTable th').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (k === sortKey) sortAsc = !sortAsc;
+    else { sortKey = k; sortAsc = false; }
+    renderTable();
+  });
+});
+renderTable();
+
+// ============ GRAPHIQUE DISPERSION ============
+const maisons = DVF_DATA.filter(t => t.type === 'Maison' && t.surface && t.surface > 20 && t.eurom2 && t.eurom2 < 5000);
+const ctx = document.getElementById('scatterChart').getContext('2d');
+new Chart(ctx, {
+  type: 'scatter',
+  data: {
+    datasets: [
+      {
+        label: 'Maisons Larche (DVF 2021-2025)',
+        data: maisons.map(t => ({ x: t.surface, y: t.eurom2, label: `${t.date.substring(0,7)} · ${t.num} ${t.voie}` })),
+        backgroundColor: 'rgba(56, 189, 248, 0.6)',
+        borderColor: '#38bdf8',
+        pointRadius: 5
+      },
+      {
+        label: '50 av. Dr Paul Soufron (étudié)',
+        data: [{ x: 158, y: 1797, label: 'Bien étudié — prix demandé' }],
+        backgroundColor: '#22c55e',
+        borderColor: '#16a34a',
+        pointRadius: 12,
+        pointStyle: 'star'
+      }
+    ]
+  },
+  options: {
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: '#e2e8f0' } },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.raw.label} → ${ctx.raw.x}m² @ ${ctx.raw.y.toLocaleString('fr-FR')}€/m²`
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'Surface (m²)', color: '#e2e8f0' },
+        ticks: { color: '#94a3b8' },
+        grid: { color: '#334155' }
+      },
+      y: {
+        title: { display: true, text: '€/m²', color: '#e2e8f0' },
+        ticks: { color: '#94a3b8' },
+        grid: { color: '#334155' }
+      }
+    }
+  }
+});
+
+// ============ CHECKLIST ============
+const CHECKLIST = {
+  'cat-docs': [
+    'DPE complet (rapport intégral, pas juste la lettre)',
+    'État des risques et pollutions (ERP) signé',
+    'Diagnostic électricité (> 15 ans)',
+    'Diagnostic gaz (> 15 ans)',
+    'Diagnostic amiante (si construit avant 1997)',
+    'Diagnostic plomb (si construit avant 1949)',
+    'Diagnostic termites (Corrèze concernée)',
+    'Diagnostic assainissement',
+    'Loi Carrez / Loi Boutin (mesurage exact)',
+    'Attestation conformité piscine (sécurité)',
+    'Déclaration H1 piscine (taxe foncière)'
+  ],
+  'cat-bien': [
+    'Année de construction exacte',
+    'Date des derniers travaux (chaudière, menuiseries, isolation, toiture)',
+    'Factures travaux récents (à demander)',
+    'Type de gaz (citerne ou ville) + fournisseur',
+    '2 ans de factures gaz + élec',
+    'État de la toiture (âge, dernière révision)',
+    'État de la charpente (visible depuis combles)',
+    'Conformité électricité (norme NF C 15-100)',
+    'Présence et état du garage / dépendances',
+    'Mitoyennetés (murs, règlements)',
+    'Surface réelle vs surface annoncée'
+  ],
+  'cat-visite': [
+    'Visite aux heures de pointe (7-9h matin)',
+    'Visite aux heures de pointe (17-19h soir)',
+    'Visite un samedi midi (marché ?)',
+    'Test bruit fenêtres ouvertes côté avenue',
+    'Vérification orientation des chambres (côté jardin idéal)',
+    'État du jardin et des extérieurs',
+    'État de la piscine (cellule sel, liner)',
+    'Vérification écoulements / humidité (caves, RDJ)',
+    'Stationnement disponible (rue + propriété)'
+  ],
+  'cat-mairie': [
+    'PLUi Bassin de Brive : zonage de la parcelle',
+    'Possibilité d\'extension (utile vu grand terrain)',
+    'Servitudes (passage, vues, réseaux)',
+    'Plan de zonage PPRI Vézère pour la parcelle',
+    'Projets municipaux à proximité (route, équipement)',
+    'Certificat d\'urbanisme opérationnel',
+    'Type d\'assainissement (collectif probable)'
+  ],
+  'cat-vendeur': [
+    'Date d\'acquisition par le vendeur (DVF antérieur ?)',
+    'Prix d\'origine (information souvent partagée)',
+    'Motif de vente (urgence = marge négo)',
+    'Taxe foncière 2025 (montant exact)',
+    'Charges régulières (entretien piscine, gaz citerne)',
+    'Honoraires agence : confirmation charge vendeur',
+    'SIRET CONTACT IMMO Larche vérifié',
+    'Simulation prêt avec courtier (CAFPI, Empruntis, etc.)',
+    'Capacité d\'emprunt confirmée par banque'
+  ]
+};
+
+const CHECKLIST_KEY = 'larche-checklist-v1';
+
+function loadChecklist() {
+  try { return JSON.parse(localStorage.getItem(CHECKLIST_KEY)) || {}; } catch { return {}; }
+}
+function saveChecklist(state) {
+  localStorage.setItem(CHECKLIST_KEY, JSON.stringify(state));
+}
+
+const state = loadChecklist();
+
+Object.entries(CHECKLIST).forEach(([catId, items]) => {
+  const container = document.getElementById(catId);
+  container.innerHTML = items.map((item, i) => {
+    const id = `${catId}-${i}`;
+    const checked = state[id] ? 'checked' : '';
+    const doneClass = state[id] ? 'done' : '';
+    return `<div class="check-item ${doneClass}" id="wrap-${id}">
+      <input type="checkbox" id="${id}" ${checked} onchange="toggleCheck('${id}')">
+      <label for="${id}">${item}</label>
+    </div>`;
+  }).join('');
+});
+
+function toggleCheck(id) {
+  const cb = document.getElementById(id);
+  const wrap = document.getElementById('wrap-' + id);
+  state[id] = cb.checked;
+  saveChecklist(state);
+  wrap.classList.toggle('done', cb.checked);
+}
+
+function resetChecklist() {
+  if (!confirm('Réinitialiser tous les cochages ?')) return;
+  localStorage.removeItem(CHECKLIST_KEY);
+  location.reload();
+}
+</script>
+</body>
+</html>
